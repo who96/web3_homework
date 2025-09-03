@@ -179,7 +179,7 @@ func twoSum(nums []int, target int) []int {
 }
 
 func main() {
-	// findSingleNumber()
+	findSingleNumber()
 	// fmt.Println(isPalindrome(12219))
 	// fmt.Println(isValid("(1212)"))
 	// fmt.Println(longestCommonPrefix([]string{"flower", "flow", "flight"}))
@@ -187,5 +187,4 @@ func main() {
 	// fmt.Println(removeDuplicates([]int{1, 1, 2}))
 	// fmt.Println(merge([][]int{{1, 3}, {2, 6}, {8, 10}, {15, 18}}))
 	// fmt.Println(twoSum([]int{2, 7, 11, 15}, 9))
-	Hello()
 }
