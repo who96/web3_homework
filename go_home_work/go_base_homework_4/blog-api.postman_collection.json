@@ -1,0 +1,477 @@
+{
+	"info": {
+		"_postman_id": "blog-backend-api",
+		"name": "个人博客后端API",
+		"description": "Go+Gin+GORM+MySQL个人博客系统API接口集合",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "用户认证",
+			"item": [
+				{
+					"name": "用户注册",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"password123\",\n  \"email\": \"test@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "register"]
+						}
+					},
+					"response": [
+						{
+							"name": "注册成功",
+							"originalRequest": {
+								"method": "POST",
+								"header": [{"key": "Content-Type", "value": "application/json"}],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"password123\",\n  \"email\": \"test@example.com\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/auth/register",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "auth", "register"]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"body": "{\n  \"message\": \"用户注册成功\",\n  \"user_id\": 1\n}"
+						},
+						{
+							"name": "用户名已存在",
+							"originalRequest": {
+								"method": "POST",
+								"header": [{"key": "Content-Type", "value": "application/json"}],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"password123\",\n  \"email\": \"test2@example.com\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/auth/register",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "auth", "register"]
+								}
+							},
+							"status": "Conflict",
+							"code": 409,
+							"_postman_previewlanguage": "json",
+							"body": "{\n  \"error\": \"username_exists\",\n  \"message\": \"用户名已存在\"\n}"
+						}
+					]
+				},
+				{
+					"name": "用户登录",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						}
+					},
+					"response": [
+						{
+							"name": "登录成功",
+							"originalRequest": {
+								"method": "POST",
+								"header": [{"key": "Content-Type", "value": "application/json"}],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"password123\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/auth/login",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "auth", "login"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"body": "{\n  \"message\": \"登录成功\",\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"user_id\": 1\n}"
+						},
+						{
+							"name": "登录失败",
+							"originalRequest": {
+								"method": "POST",
+								"header": [{"key": "Content-Type", "value": "application/json"}],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"wrongpassword\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/auth/login",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "auth", "login"]
+								}
+							},
+							"status": "Unauthorized",
+							"code": 401,
+							"_postman_previewlanguage": "json",
+							"body": "{\n  \"error\": \"invalid_credentials\",\n  \"message\": \"用户名或密码错误\"\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "文章管理",
+			"item": [
+				{
+					"name": "获取文章列表",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/posts",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "posts"]
+						}
+					},
+					"response": [
+						{
+							"name": "获取成功",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/posts",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "posts"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"body": "{\n  \"message\": \"获取文章列表成功\",\n  \"data\": [\n    {\n      \"id\": 1,\n      \"title\": \"我的第一篇博客文章\",\n      \"content\": \"这是文章内容...\",\n      \"user_id\": 1,\n      \"username\": \"testuser\",\n      \"created_at\": \"2025-09-05 16:10:39\",\n      \"updated_at\": \"2025-09-05 16:10:39\"\n    }\n  ],\n  \"count\": 1\n}"
+						}
+					]
+				},
+				{
+					"name": "获取文章详情",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/posts/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "posts", "1"]
+						}
+					},
+					"response": [
+						{
+							"name": "获取成功",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/posts/1",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "posts", "1"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"body": "{\n  \"message\": \"获取文章详情成功\",\n  \"data\": {\n    \"id\": 1,\n    \"title\": \"我的第一篇博客文章\",\n    \"content\": \"这是文章的完整内容...\",\n    \"user_id\": 1,\n    \"username\": \"testuser\",\n    \"created_at\": \"2025-09-05 16:10:39\",\n    \"updated_at\": \"2025-09-05 16:10:39\"\n  }\n}"
+						},
+						{
+							"name": "文章不存在",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/posts/999",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "posts", "999"]
+								}
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"body": "{\n  \"error\": \"post_not_found\",\n  \"message\": \"文章不存在\"\n}"
+						}
+					]
+				},
+				{
+					"name": "创建文章",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"我的新文章\",\n  \"content\": \"这是一篇新的博客文章内容，介绍了一些有趣的技术概念。\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/protected/posts",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "protected", "posts"]
+						}
+					},
+					"response": [
+						{
+							"name": "创建成功",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{"key": "Content-Type", "value": "application/json"},
+									{"key": "Authorization", "value": "Bearer {{jwt_token}}"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"title\": \"我的新文章\",\n  \"content\": \"这是一篇新的博客文章内容。\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/protected/posts",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "protected", "posts"]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"body": "{\n  \"id\": 2,\n  \"title\": \"我的新文章\",\n  \"content\": \"这是一篇新的博客文章内容。\",\n  \"user_id\": 1,\n  \"username\": \"testuser\",\n  \"created_at\": \"2025-09-05 16:20:15\",\n  \"updated_at\": \"2025-09-05 16:20:15\"\n}"
+						}
+					]
+				},
+				{
+					"name": "更新文章",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"更新后的文章标题\",\n  \"content\": \"这是更新后的文章内容，添加了更多详细信息。\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/protected/posts/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "protected", "posts", "1"]
+						}
+					},
+					"response": [
+						{
+							"name": "更新成功",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [
+									{"key": "Content-Type", "value": "application/json"},
+									{"key": "Authorization", "value": "Bearer {{jwt_token}}"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"title\": \"更新后的文章标题\",\n  \"content\": \"这是更新后的文章内容。\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/protected/posts/1",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "protected", "posts", "1"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"body": "{\n  \"id\": 1,\n  \"title\": \"更新后的文章标题\",\n  \"content\": \"这是更新后的文章内容。\",\n  \"user_id\": 1,\n  \"username\": \"testuser\",\n  \"created_at\": \"2025-09-05 16:10:39\",\n  \"updated_at\": \"2025-09-05 16:25:10\"\n}"
+						},
+						{
+							"name": "权限不足",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [
+									{"key": "Content-Type", "value": "application/json"},
+									{"key": "Authorization", "value": "Bearer {{jwt_token}}"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"title\": \"尝试更新他人文章\",\n  \"content\": \"这不应该成功。\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/protected/posts/999",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "protected", "posts", "999"]
+								}
+							},
+							"status": "Forbidden",
+							"code": 403,
+							"_postman_previewlanguage": "json",
+							"body": "{\n  \"error\": \"access_denied\",\n  \"message\": \"只有文章作者才能修改文章\"\n}"
+						}
+					]
+				},
+				{
+					"name": "删除文章",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/protected/posts/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "protected", "posts", "1"]
+						}
+					},
+					"response": [
+						{
+							"name": "删除成功",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [
+									{"key": "Authorization", "value": "Bearer {{jwt_token}}"}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/protected/posts/1",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "protected", "posts", "1"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"body": "{\n  \"message\": \"文章删除成功\",\n  \"post_id\": 1\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "评论管理",
+			"item": [
+				{
+					"name": "获取文章评论列表",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/posts/1/comments",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "posts", "1", "comments"]
+						}
+					},
+					"response": [
+						{
+							"name": "获取成功",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/posts/1/comments",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "posts", "1", "comments"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"body": "{\n  \"message\": \"获取评论列表成功\",\n  \"data\": [\n    {\n      \"id\": 1,\n      \"content\": \"这篇文章写得很好！\",\n      \"user_id\": 2,\n      \"username\": \"anotheruser\",\n      \"post_id\": 1,\n      \"created_at\": \"2025-09-05 16:30:25\"\n    }\n  ],\n  \"count\": 1\n}"
+						}
+					]
+				},
+				{
+					"name": "创建评论",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"content\": \"这是一条很有价值的评论，感谢作者的分享！\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/protected/posts/1/comments",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "protected", "posts", "1", "comments"]
+						}
+					},
+					"response": [
+						{
+							"name": "评论成功",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{"key": "Content-Type", "value": "application/json"},
+									{"key": "Authorization", "value": "Bearer {{jwt_token}}"}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"content\": \"这是一条很有价值的评论！\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/protected/posts/1/comments",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "protected", "posts", "1", "comments"]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"body": "{\n  \"id\": 2,\n  \"content\": \"这是一条很有价值的评论！\",\n  \"user_id\": 1,\n  \"username\": \"testuser\",\n  \"post_id\": 1,\n  \"created_at\": \"2025-09-05 16:35:10\"\n}"
+						}
+					]
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080"
+		},
+		{
+			"key": "jwt_token",
+			"value": "your_jwt_token_here"
+		}
+	]
+}
