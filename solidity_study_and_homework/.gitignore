@@ -1,0 +1,118 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# Hardhat files
+cache/
+artifacts/
+typechain/
+typechain-types/
+deployments/localhost/
+deployments/hardhat/
+.hardhat-backup/
+
+# Foundry files
+out/
+broadcast/
+metadata/
+foundry.lock
+*.lock
+lib/forge-std/
+
+# Dependencies and libraries
+.deps/
+.states/
+
+# OpenZeppelin
+.openzeppelin/
+
+# Testing
+coverage/
+coverage.json
+*.lcov
+
+# Production builds
+build/
+dist/
+out/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# IDE - IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Editor directories and files
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# Package files
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# Claude config
+.claude/
+
+# Remappings
+remappings.txt
+
+# Misc
+*.orig
+.eslintcache
+.stylelintcache
+*.tsbuildinfo

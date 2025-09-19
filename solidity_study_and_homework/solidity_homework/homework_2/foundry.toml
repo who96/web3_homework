@@ -1,0 +1,27 @@
+[profile.default]
+src = "contracts"
+out = "out"
+libs = ["node_modules", "lib"]
+test = "test"
+script = "script"
+
+# 优化设置
+optimizer = true
+optimizer_runs = 200
+
+# 使用 0.8.20 版本的 Solidity
+solc = "0.8.20"
+evm_version = "paris"
+
+# 测试设置
+fuzz = { runs = 256 }
+invariant = { runs = 256 }
+
+# 网络配置
+[rpc_endpoints]
+sepolia = "${SEPOLIA_RPC_URL}"
+mainnet = "${MAINNET_RPC_URL}"
+
+[etherscan]
+sepolia = { key = "${ETHERSCAN_API_KEY}" }
+mainnet = { key = "${ETHERSCAN_API_KEY}" }
