@@ -1,0 +1,352 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.7;
+
+import "forge-std/Script.sol";
+import "forge-std/console.sol";
+import "../src/SimpleNFT.sol";
+import "../src/SimpleAuction.sol";
+import "../src/AuctionPriceFeed.sol";
+
+/**
+ * @title End-to-End Auction Test Script
+ * @notice 完整的拍卖流程测试，使用6个钱包在Sepolia测试网
+ *
+ * 测试流程:
+ * 1. 主钱包(PRIVATE_KEY)创建NFT并发起拍卖(120s)
+ * 2. 钱包2-5在拍卖期间内竞拍(0.001 ETH以内)
+ * 3. 钱包6在拍卖期间后尝试竞拍(应失败)
+ * 4. 验证Chainlink Price Feed数据
+ * 5. 拍卖结束后资金和NFT结算
+ * 6. 验证退款机制
+ */
+contract E2EAuctionTest is Script {
+    // 已部署的合约地址
+    SimpleNFT constant NFT = SimpleNFT(0xFE20c64097110fF9BF56E86e8E5F71122e14B462);
+    SimpleAuction constant AUCTION = SimpleAuction(0x220270459e71f3C29f61F6E03fE2cBf1B688b572);
+    AuctionPriceFeed constant PRICE_FEED = AuctionPriceFeed(0x3aF00549783246C6C73F0aBa2f85C00d894f727D);
+
+    // 测试参数
+    uint256 constant AUCTION_DURATION = 120; // 120秒拍卖时间
+    uint256 constant RESERVE_PRICE = 0.0001 ether; // 起拍价0.0001 ETH
+    uint256 constant BID_INCREMENT = 0.0001 ether; // 每次加价0.0001 ETH
+
+    // 钱包地址(将从环境变量计算)
+    address wallet1; // 主钱包 - 卖家
+    address wallet2; // 竞拍者1
+    address wallet3; // 竞拍者2
+    address wallet4; // 竞拍者3
+    address wallet5; // 竞拍者4
+    address wallet6; // 超时竞拍者
+
+    uint256 tokenId;
+    uint256 auctionId;
+
+    function run() external {
+        console.log("=== Starting End-to-End Auction Test ===");
+
+        // 计算所有钱包地址
+        _setupWallets();
+
+        // Phase 1: 创建NFT和拍卖
+        _phase1_CreateAuction();
+
+        // Phase 2: 竞拍阶段
+        _phase2_BiddingPhase();
+
+        // Phase 3: 验证Price Feed
+        _phase3_VerifyPriceFeed();
+
+        // Phase 4: 等待拍卖结束
+        _phase4_WaitForAuctionEnd();
+
+        // Phase 5: 测试setPlatformWallet功能
+        _phase5_SetPlatformWallet();
+
+        // Phase 6: 尝试超时竞拍(应失败)
+        _phase6_TimeoutBid();
+
+        // Phase 7: 结算阶段
+        _phase7_SettlementPhase();
+
+        console.log("=== End-to-End Test Completed ===");
+    }
+
+    function _setupWallets() internal {
+        wallet1 = vm.addr(vm.envUint("PRIVATE_KEY"));
+        wallet2 = vm.addr(vm.envUint("PRIVATE_KEY_2"));
+        wallet3 = vm.addr(vm.envUint("PRIVATE_KEY_3"));
+        wallet4 = vm.addr(vm.envUint("PRIVATE_KEY_4"));
+        wallet5 = vm.addr(vm.envUint("PRIVATE_KEY_5"));
+        wallet6 = vm.addr(vm.envUint("PRIVATE_KEY_6"));
+
+        console.log("Wallet addresses setup:");
+        console.log("Wallet1 (seller):", wallet1);
+        console.log("Wallet2-5 (bidders):", wallet2, wallet3, wallet4, wallet5);
+        console.log("Wallet6 (late bidder):", wallet6);
+    }
+
+    function _phase1_CreateAuction() internal {
+        console.log("\n=== Phase 1: Create NFT and Auction ===");
+
+        vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
+
+        // 1.1 显式测试NFT mint功能
+        console.log("1.1 Testing SimpleNFT.mint function");
+        uint256 totalSupplyBefore = NFT.totalSupply();
+        tokenId = NFT.mint(wallet1);
+        uint256 totalSupplyAfter = NFT.totalSupply();
+
+        require(totalSupplyAfter == totalSupplyBefore + 1, "Mint should increase total supply");
+        require(NFT.ownerOf(tokenId) == wallet1, "Minted NFT should belong to specified address");
+        console.log("\u2705 NFT Mint function verified, TokenID:", tokenId);
+        console.log("   Owner:", NFT.ownerOf(tokenId));
+        console.log("   Total supply:", totalSupplyAfter);
+
+        // 1.2 显式测试NFT approve功能
+        console.log("1.2 测试SimpleNFT.setApprovalForAll功能");
+        bool approvedBefore = NFT.isApprovedForAll(wallet1, address(AUCTION));
+        NFT.setApprovalForAll(address(AUCTION), true);
+        bool approvedAfter = NFT.isApprovedForAll(wallet1, address(AUCTION));
+
+        require(!approvedBefore && approvedAfter, "授权状态应该从false变为true");
+        console.log("✅ NFT授权功能验证通过");
+        console.log("   拍卖合约已获得全部NFT操作权限");
+
+        // 1.3 创建拍卖
+        console.log("1.3 创建拍卖");
+        auctionId = AUCTION.createAuction(
+            address(NFT),
+            tokenId,
+            AUCTION_DURATION,
+            RESERVE_PRICE
+        );
+
+        console.log("✅ 拍卖创建成功, AuctionID:", auctionId);
+        console.log("   拍卖时长:", AUCTION_DURATION, "秒");
+        console.log("   起拍价:", RESERVE_PRICE, "Wei");
+
+        // 1.4 验证NFT所有权转移
+        require(NFT.ownerOf(tokenId) == address(AUCTION), "NFT应该转移给拍卖合约");
+        require(AUCTION.isAuctionActive(auctionId), "拍卖应该处于活跃状态");
+        console.log("✅ NFT已托管给拍卖合约");
+        console.log("   拍卖状态: 活跃中");
+
+        vm.stopBroadcast();
+    }
+
+    function _phase2_BiddingPhase() internal {
+        console.log("\n=== Phase 2: 竞拍阶段 ===");
+
+        uint256 currentBid = RESERVE_PRICE;
+
+        // 2.1 钱包2首次出价(起拍价)
+        vm.broadcast(vm.envUint("PRIVATE_KEY_2"));
+        AUCTION.placeBid{value: currentBid}(auctionId);
+        console.log("钱包2出价:", currentBid, "Wei");
+
+        // 2.2 钱包3出价(加价)
+        currentBid += BID_INCREMENT;
+        vm.broadcast(vm.envUint("PRIVATE_KEY_3"));
+        AUCTION.placeBid{value: currentBid}(auctionId);
+        console.log("钱包3出价:", currentBid, "Wei");
+
+        // 2.3 钱包4出价(继续加价)
+        currentBid += BID_INCREMENT;
+        vm.broadcast(vm.envUint("PRIVATE_KEY_4"));
+        AUCTION.placeBid{value: currentBid}(auctionId);
+        console.log("钱包4出价:", currentBid, "Wei");
+
+        // 2.4 钱包5最终出价(最高价)
+        currentBid += BID_INCREMENT;
+        vm.broadcast(vm.envUint("PRIVATE_KEY_5"));
+        AUCTION.placeBid{value: currentBid}(auctionId);
+        console.log("钱包5出价:", currentBid, "Wei (当前最高价)");
+
+        // 2.5 验证拍卖状态
+        SimpleAuction.Auction memory auction = AUCTION.getAuction(auctionId);
+        require(auction.highestBidder == wallet5, "钱包5应该是当前最高价竞拍者");
+        require(auction.highestBid == currentBid, "最高价应该匹配");
+        console.log("当前最高竞拍者:", auction.highestBidder);
+        console.log("当前最高价:", auction.highestBid, "Wei");
+    }
+
+    function _phase3_VerifyPriceFeed() internal {
+        console.log("\n=== Phase 3: 验证Chainlink Price Feed ===");
+
+        SimpleAuction.Auction memory auction = AUCTION.getAuction(auctionId);
+        uint256 currentHighestBid = auction.highestBid;
+
+        // 3.1 显式测试AuctionPriceFeed.getEthUsdPrice功能
+        console.log("3.1 测试AuctionPriceFeed.getEthUsdPrice功能");
+        console.log("   当前最高出价(Wei):", currentHighestBid);
+
+        uint256 ethPriceFromFeed = PRICE_FEED.getEthUsdPrice(currentHighestBid);
+        require(ethPriceFromFeed > 0, "ETH价格应该大于0");
+
+        console.log("✅ PriceFeed.getEthUsdPrice功能验证通过");
+        console.log("   ", currentHighestBid, "Wei =", ethPriceFromFeed, "USD (8位小数)");
+
+        // 3.2 测试不同数量ETH的价格计算
+        console.log("3.2 测试不同数量的ETH价格计算");
+
+        uint256 oneEthPrice = PRICE_FEED.getEthUsdPrice(1 ether);
+        uint256 halfEthPrice = PRICE_FEED.getEthUsdPrice(0.5 ether);
+        uint256 minBidPrice = PRICE_FEED.getEthUsdPrice(RESERVE_PRICE);
+
+        console.log("   1 ETH =", oneEthPrice, "USD");
+        console.log("   0.5 ETH =", halfEthPrice, "USD");
+        console.log("   起拍价", RESERVE_PRICE, "Wei =", minBidPrice, "USD");
+
+        require(oneEthPrice == halfEthPrice * 2, "价格计算应该是线性的");
+        console.log("✅ 价格计算线性验证通过");
+
+        // 3.3 通过拍卖合约验证价格一致性
+        console.log("3.3 验证拍卖合约价格集成");
+        (bool success, uint256 auctionUsdPrice) = AUCTION.getAuctionPriceInUSD(auctionId);
+        require(success, "拍卖价格获取应该成功");
+        require(auctionUsdPrice == ethPriceFromFeed, "拍卖合约和PriceFeed价格应该一致");
+
+        console.log("✅ 拍卖-PriceFeed集成验证通过");
+        console.log("   当前拍卖价格:", auctionUsdPrice, "USD");
+    }
+
+    function _phase4_WaitForAuctionEnd() internal {
+        console.log("\n=== Phase 4: 等待拍卖结束 ===");
+
+        // 注意: 在实际脚本中无法真正等待，需要手动等待或分阶段执行
+        console.log("请等待", AUCTION_DURATION, "秒后再继续执行后续步骤...");
+        console.log("或者手动调用 endAuction 函数");
+
+        // 这里应该等待拍卖时间结束，但脚本无法sleep
+        // 在实际测试中需要分两次执行脚本，或手动等待
+    }
+
+    function _phase5_SetPlatformWallet() internal {
+        console.log("\n=== Phase 5: 测试setPlatformWallet功能 ===");
+
+        // 5.1 记录原平台钱包（合约部署时设置的）
+        // 从部署脚本可知，原平台钱包是0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+        address originalPlatformWallet = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+
+        // 5.2 设置新的平台钱包（使用wallet6作为新平台钱包）
+        console.log("5.1 测试SimpleAuction.setPlatformWallet功能");
+        console.log("   原平台钱包:", originalPlatformWallet);
+        console.log("   新平台钱包:", wallet6);
+
+        vm.broadcast(vm.envUint("PRIVATE_KEY")); // 只有owner可以调用
+        AUCTION.setPlatformWallet(wallet6);
+
+        console.log("✅ 平台钱包设置成功");
+        console.log("   注意: 拍卖结算时的平台费用将发送到新钱包");
+
+        // 5.3 验证设置是否生效
+        // Note: 我们无法直接读取platformWallet状态变量，只能在结算时验证
+        console.log("5.2 平台钱包变更将在结算阶段验证");
+    }
+
+    function _phase6_TimeoutBid() internal {
+        console.log("\n=== Phase 6: 超时竞拍测试 ===");
+
+        // 6.1 检查拍卖是否已结束
+        if (AUCTION.isAuctionActive(auctionId)) {
+            console.log("拍卖仍在进行中，跳过超时测试");
+            return;
+        }
+
+        // 6.2 尝试超时竞拍(应该失败)
+        console.log("钱包6尝试超时竞拍...");
+        vm.expectRevert();
+        vm.broadcast(vm.envUint("PRIVATE_KEY_6"));
+        AUCTION.placeBid{value: 0.001 ether}(auctionId);
+        console.log("超时竞拍正确被拒绝");
+    }
+
+    function _phase7_SettlementPhase() internal {
+        console.log("\n=== Phase 7: 结算阶段 ===");
+
+        SimpleAuction.Auction memory auction = AUCTION.getAuction(auctionId);
+        uint256 finalBid = auction.highestBid;
+        uint256 expectedPlatformFee = (finalBid * 300) / 10000; // 3%费率
+        address originalPlatformWallet = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+
+        console.log("7.1 记录结算前余额");
+        console.log("   最终成交价:", finalBid, "Wei");
+        console.log("   预期平台费用:", expectedPlatformFee, "Wei");
+        uint256 wallet6BalanceBefore = wallet6.balance;
+        uint256 originalPlatformBalanceBefore = originalPlatformWallet.balance;
+        console.log("   新平台钱包余额(结算前):", wallet6BalanceBefore, "Wei");
+        console.log("   原平台钱包余额(结算前):", originalPlatformBalanceBefore, "Wei");
+
+        // 7.2 结束拍卖(如果还未结束)
+        if (AUCTION.isAuctionActive(auctionId)) {
+            vm.broadcast(vm.envUint("PRIVATE_KEY"));
+            AUCTION.endAuction(auctionId);
+            console.log("✅ 拍卖已结束");
+        }
+
+        // 7.3 获胜者领取NFT
+        console.log("7.2 钱包5(获胜者)领取NFT");
+        vm.broadcast(vm.envUint("PRIVATE_KEY_5"));
+        AUCTION.claimNFT(auctionId);
+
+        require(NFT.ownerOf(tokenId) == wallet5, "NFT应该转移给获胜者");
+        console.log("✅ NFT成功转移给获胜者:", wallet5);
+
+        // 7.4 卖家领取资金（此时平台费用应该发送到新平台钱包）
+        console.log("7.3 钱包1(卖家)领取资金");
+        uint256 seller1BalanceBefore = wallet1.balance;
+
+        vm.broadcast(vm.envUint("PRIVATE_KEY"));
+        AUCTION.claimFunds(auctionId);
+
+        uint256 seller1BalanceAfter = wallet1.balance;
+        uint256 sellerReceived = seller1BalanceAfter - seller1BalanceBefore;
+        console.log("   卖家收到资金:", sellerReceived, "Wei");
+
+        // 7.5 验证setPlatformWallet功能是否生效
+        console.log("7.4 验证setPlatformWallet功能效果");
+        uint256 wallet6BalanceAfter = wallet6.balance;
+        uint256 originalPlatformBalanceAfter = originalPlatformWallet.balance;
+        uint256 platformFeeReceived = wallet6BalanceAfter - wallet6BalanceBefore;
+
+        console.log("   新平台钱包余额(结算后):", wallet6BalanceAfter, "Wei");
+        console.log("   原平台钱包余额(结算后):", originalPlatformBalanceAfter, "Wei");
+        console.log("   新平台钱包收到费用:", platformFeeReceived, "Wei");
+        console.log("   原平台钱包余额变化:", originalPlatformBalanceAfter - originalPlatformBalanceBefore, "Wei");
+
+        require(platformFeeReceived == expectedPlatformFee, "新平台钱包应该收到正确的平台费用");
+        require(originalPlatformBalanceAfter == originalPlatformBalanceBefore, "原平台钱包余额不应该增加");
+
+        console.log("✅ setPlatformWallet功能验证成功");
+        console.log("   平台费用正确发送到新平台钱包(wallet6)");
+
+        // 7.6 失败竞拍者领取退款
+        console.log("7.5 失败竞拍者领取退款");
+
+        // 钱包2领取退款
+        uint256 refund2 = AUCTION.pendingRefunds(wallet2);
+        if (refund2 > 0) {
+            vm.broadcast(vm.envUint("PRIVATE_KEY_2"));
+            AUCTION.withdrawRefund();
+            console.log("   钱包2退款:", refund2, "Wei");
+        }
+
+        // 钱包3领取退款
+        uint256 refund3 = AUCTION.pendingRefunds(wallet3);
+        if (refund3 > 0) {
+            vm.broadcast(vm.envUint("PRIVATE_KEY_3"));
+            AUCTION.withdrawRefund();
+            console.log("   钱包3退款:", refund3, "Wei");
+        }
+
+        // 钱包4领取退款
+        uint256 refund4 = AUCTION.pendingRefunds(wallet4);
+        if (refund4 > 0) {
+            vm.broadcast(vm.envUint("PRIVATE_KEY_4"));
+            AUCTION.withdrawRefund();
+            console.log("   钱包4退款:", refund4, "Wei");
+        }
+
+        console.log("✅ 所有退款完成");
+    }
+}
