@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(echo $SHELL)",
+      "Read(//Users/huluobo/**)",
+      "Bash(source:*)",
+      "Bash(echo:*)",
+      "Bash(cat:*)",
+      "Bash(go install:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
