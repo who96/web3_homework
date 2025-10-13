@@ -1,0 +1,66 @@
+# Binaries
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace file
+go.work
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ====================
+# 🔐 CRITICAL: Private Keys
+# ====================
+# NEVER commit private keys to git!
+# These files contain real private keys that control your funds.
+
+# Solana keypair files
+*.json
+id.json
+*.key
+*.pem
+
+# Environment files with secrets
+.env
+.env.local
+*.env
+
+# Wallet files
+wallet/
+wallets/
+keypairs/
+
+# ====================
+# Project specific
+# ====================
+# Compiled programs
+/programs/target/
+/programs/.anchor/
+
+# Node modules (if using JavaScript/TypeScript tools)
+node_modules/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
