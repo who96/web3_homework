@@ -1,0 +1,23 @@
+# Compiler files
+cache/
+out/
+
+# Ignores development broadcast logs
+!/broadcast
+/broadcast/*/31337/
+/broadcast/**/dry-run/
+
+# Docs
+# docs/  # 注释掉：文档需要提交到 Git
+
+# Dotenv file
+.env
+
+# Claude Code 工作目录（不提交）
+.claude/
+.spec-workflow/
+
+# 临时文件
+*.swp
+*.swo
+*~
