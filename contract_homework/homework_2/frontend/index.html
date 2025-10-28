@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fukua Stake Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.1/dist/ethers.umd.min.js" defer></script>
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <header>
+      <h1>Fukua Stake 控制台</h1>
+      <div class="wallet-controls">
+        <button id="connect-wallet">连接钱包</button>
+        <span id="wallet-address" class="muted">未连接</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="card">
+        <h2>合约连接</h2>
+        <div class="form-grid">
+          <label for="stake-address">FukuaStake 地址</label>
+          <input type="text" id="stake-address" placeholder="0x..." />
+          <label for="reward-address">奖励代币地址（可选）</label>
+          <input type="text" id="reward-address" placeholder="自动读取" />
+        </div>
+        <button id="load-contract">加载合约</button>
+        <p id="contract-status" class="muted">请先输入合约地址</p>
+      </section>
+
+      <section class="card" id="global-state" hidden>
+        <h2>全局状态</h2>
+        <div class="grid">
+          <div><strong>startBlock</strong><span id="start-block">-</span></div>
+          <div><strong>endBlock</strong><span id="end-block">-</span></div>
+          <div><strong>fukuaPerBlock</strong><span id="reward-per-block">-</span></div>
+          <div><strong>totalPoolWeight</strong><span id="total-weight">-</span></div>
+          <div><strong>paused</strong><span id="paused-flag">-</span></div>
+          <div><strong>claimPaused</strong><span id="claim-paused-flag">-</span></div>
+          <div><strong>withdrawPaused</strong><span id="withdraw-paused-flag">-</span></div>
+          <div><strong>奖励代币</strong><span id="reward-token">-</span></div>
+        </div>
+      </section>
+
+      <section class="card" id="pool-section" hidden>
+        <h2>质押池</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>PID</th>
+              <th>质押资产</th>
+              <th>权重</th>
+              <th>总质押</th>
+              <th>min 质押</th>
+              <th>锁定区块</th>
+            </tr>
+          </thead>
+          <tbody id="pool-table-body"></tbody>
+        </table>
+      </section>
+
+      <section class="card" id="user-section" hidden>
+        <h2>我的资产</h2>
+        <div class="form-grid">
+          <label for="user-pid">选择池 ID</label>
+          <select id="user-pid"></select>
+          <label>质押余额</label><span id="user-stake">-</span>
+          <label>待领取奖励</label><span id="user-pending">-</span>
+          <label>排队提现总额</label><span id="user-requested">-</span>
+          <label>可立即提现</label><span id="user-unlocked">-</span>
+        </div>
+
+        <div class="form-grid">
+          <label for="stake-amount">质押数量</label>
+          <input type="text" id="stake-amount" placeholder="例如 1.5" />
+          <label for="stake-token">ERC20 质押代币地址（ETH 留空）</label>
+          <input type="text" id="stake-token" placeholder="仅 ERC20 池需要" />
+        </div>
+        <div class="button-row">
+          <button id="approve-button" class="secondary">Approve ERC20</button>
+          <button id="deposit-button">质押</button>
+        </div>
+
+        <div class="form-grid">
+          <label for="unstake-amount">解质押数量</label>
+          <input type="text" id="unstake-amount" placeholder="解质押数量" />
+        </div>
+        <div class="button-row">
+          <button id="unstake-button" class="secondary">发起解质押</button>
+          <button id="withdraw-button" class="secondary">领取解锁质押</button>
+          <button id="claim-button">领取奖励</button>
+        </div>
+      </section>
+
+      <section class="card" id="admin-section" hidden>
+        <h2>管理员工具</h2>
+        <div class="form-grid">
+          <label for="new-reward-rate">新的 fukuaPerBlock</label>
+          <input type="text" id="new-reward-rate" placeholder="例如 1.0" />
+          <button id="update-rate-button" class="secondary">更新奖励速率</button>
+
+          <label for="pool-weight-pid">调整池权重（PID）</label>
+          <input type="number" id="pool-weight-pid" min="0" />
+          <label for="pool-weight-value">新的权重</label>
+          <input type="number" id="pool-weight-value" min="1" />
+          <label for="pool-weight-update-all">
+            <input type="checkbox" id="pool-weight-update-all" checked />
+            更新前先刷新全部池奖励
+          </label>
+          <button id="update-weight-button" class="secondary">更新权重</button>
+        </div>
+
+        <div class="button-row">
+          <button id="pause-global" class="danger">全局暂停</button>
+          <button id="unpause-global" class="secondary">取消暂停</button>
+          <button id="pause-claim" class="danger">暂停领取</button>
+          <button id="unpause-claim" class="secondary">恢复领取</button>
+          <button id="pause-withdraw" class="danger">暂停提现</button>
+          <button id="unpause-withdraw" class="secondary">恢复提现</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>消息</h2>
+        <pre id="log-pane" class="log"></pre>
+      </section>
+    </main>
+  </body>
+</html>

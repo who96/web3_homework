@@ -1,0 +1,15 @@
+# Environment & secrets
+.env
+
+# Build outputs / caches
+out/
+cache/
+broadcast/
+foundry.lock
+
+# Dependencies
+lib/
+
+# Local tooling artifacts
+.DS_Store
+*.log
