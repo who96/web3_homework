@@ -192,18 +192,84 @@ Messages 区域会实时显示执行结果。
 
 ---
 
-## 7. 附录：测试与脚本
+## 7. Go 交互脚本与事件监听
 
-- `forge test -vv`：包含暂停、奖励、锁定队列、角色权限、流程等 14 个用例。
-- `script/ShowStatus.s.sol`：可快速读取链上全局状态（设置 `FUKUA_STAKE_ADDRESS` 环境变量后运行）。
+项目中提供了 `main.go`，结合 `bindings/fukuastake.go` 可一键完成质押、领取奖励以及事件监听。步骤如下。
 
-示例：
+### 7.1 环境变量
 
-```bash
-export FUKUA_STAKE_ADDRESS=0xFF16fD29A0138E432A49ba7A68dE689c41D43239
-forge script script/ShowStatus.s.sol --sig run --fork-url $SEPOLIA_RPC_URL
+`main.go` 读取 `.env` 中的以下配置：
+
+```
+PRIVATE_KEY=0x...                 # 用于质押/领取的账户私钥
+SEPOLIA_RPC_URL=https://...       # HTTP RPC，用于发送交易
+SEPOLIA_WS_URL=wss://...          # WebSocket RPC，用于事件监听
 ```
 
----
+当前 `.env` 已示例配置了公共节点，执行前请确认这两个 URL 可用。
 
-至此，即可完整地部署、交互并验证 Fukua Stake 项目。若需在其它网络部署，仅需更换 RPC 与私钥配置，运行上述同样的脚本步骤即可。
+### 7.2 生成依赖并编译
+
+```bash
+cd /Users/huluobo/web3_project/web3_homework/contract_homework/homework_2
+
+# 拉取 Go 依赖（首次执行即可）
+go mod tidy
+
+# 编译
+go build ./...
+```
+
+### 7.3 运行脚本
+
+```bash
+set -a && source .env && set +a && go run .
+```
+
+脚本的行为：
+
+1. 使用私钥连接 Sepolia，调用 `depositEth` 质押 1 ETH，并等待交易确认。
+2. 等待 10 个区块（锁定期）后调用 `claim` 领取奖励。
+3. 启动 goroutine 订阅 `Deposit` / `RequestUnstake` / `Withdraw` / `Claim` 事件，打印 JSON：
+   - `event`: 事件名
+   - `user`: 调用地址
+   - `amount`, `token`: 数值与币种
+   - `flow`: 资金流向（例如 `user -> stakeContract`）
+   - `tx`: 交易哈希
+4. WebSocket 断线会自动重连；程序在完成主要操作后再等待 30 秒，以便观察事件输出。
+
+示例日志：
+
+```
+2025/10/29 15:19:54 质押 tx hash: 0xf2a1...
+{
+  "amount": "1.000000",
+  "event": "Deposit",
+  "flow": "user -> stakeContract",
+  "pool": "0",
+  "token": "ETH",
+  "tx": "0xf2a1...",
+  "user": "0x5D4..."
+}
+...
+{
+  "amount": "853.000000",
+  "event": "Claim",
+  "flow": "stakeContract -> user",
+  "token": "FUKUA"
+}
+```
+
+如需长时间运行，可在脚本里改成循环，或改写为服务进程输出到数据库/消息系统。
+
+### 7.4 相关测试与辅助脚本
+
+- `forge test -vv`：包含暂停、奖励、锁定队列、角色权限、完整流程等 14 个用例。
+- `script/ShowStatus.s.sol`：快速读取链上状态，示例：
+
+  ```bash
+  export FUKUA_STAKE_ADDRESS=0xFF16fD29A0138E432A49ba7A68dE689c41D43239
+  forge script script/ShowStatus.s.sol --sig run --fork-url $SEPOLIA_RPC_URL
+  ```
+
+至此，即可通过 Go/Foundry 双重方式验证并集成 Fukua Stake 系统。
